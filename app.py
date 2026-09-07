@@ -81,26 +81,39 @@ if "user_email" not in st.session_state:
         /* Ocultar barra lateral por defecto en la pantalla de login */
         [data-testid="stSidebar"] {{ display: none !important; }}
 
-        /* Eliminar pie, menú y header */
-        footer, header[data-testid="stHeader"], #MainMenu {{
+        /* 1. Ocultar header, footer y menú nativo */
+        header[data-testid="stHeader"], 
+        footer, 
+        #MainMenu {{
             display: none !important;
             visibility: hidden !important;
         }}
 
-        /* Forzar la eliminación de la insignia flotante, avatar de GitHub y botón de despliegue */
-        div[class*="viewerBadge"],
-        [data-testid="stStatusWidget"],
-        .stAppDeployButton,
-        div[class*="ProfileButton"],
-        div[class*="floating"] {{
+        /* 2. Ocultar cualquier iframe inyectado por Streamlit Cloud (el badge rojo suele ser un iframe) */
+        iframe[title*="Streamlit"],
+        iframe[src*="share.streamlit.io"] {{
+            display: none !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }}
+
+        /* 3. Atacar el contenedor por su posición fija en la esquina inferior derecha */
+        div[style*="position: fixed"][style*="bottom"][style*="right"] {{
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
         }}
 
-        /* Ocultar cualquier contenedor anclado en la esquina inferior derecha que no sea la tarjeta */
-        .stApp > div:last-child > div:last-child:has(img) {{
+        /* 4. Ocultar directamente el avatar de GitHub buscando la URL de la imagen */
+        img[src*="avatars.githubusercontent.com"] {{
+            display: none !important;
+        }}
+
+        /* 5. Clases e IDs conocidos del Cloud Badge */
+        #st-streamlit-cloud-badge,
+        .streamlit-cloud-badge,
+        div[class*="viewerBadge"] {{
             display: none !important;
         }}
         
