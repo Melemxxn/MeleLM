@@ -78,10 +78,31 @@ if "user_email" not in st.session_state:
     st.markdown(
         f"""
         <style>
-        /* Ocultar barra lateral, header y footer por defecto en la pantalla de login */
+        /* Ocultar barra lateral por defecto en la pantalla de login */
         [data-testid="stSidebar"] {{ display: none !important; }}
-        header {{ visibility: hidden !important; }}
-        footer {{ visibility: hidden !important; }}
+        
+        /* Ocultar footer por defecto */
+        footer {{
+            visibility: hidden !important;
+            display: none !important;
+        }}
+
+        /* Ocultar la insignia flotante inferior ("Hosted with Streamlit" y avatar de GitHub) */
+        div[class*="viewerBadge"] {{
+            visibility: hidden !important;
+            display: none !important;
+        }}
+
+        /* Ocultar barra de encabezado superior por defecto */
+        header[data-testid="stHeader"] {{
+            visibility: hidden !important;
+            display: none !important;
+        }}
+
+        #MainMenu {{
+            visibility: hidden !important;
+            display: none !important;
+        }}
         
         /* Fondo general oscuro */
         .stApp {{
