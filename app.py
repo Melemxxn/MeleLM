@@ -42,6 +42,10 @@ if "user_email" not in st.session_state:
                 "grant_type": "authorization_code"
             }
             token_res = requests.post(token_url, data=data)
+            if token_res.status_code != 200:
+                st.error(f"Error detallado de Google: {token_res.text}")
+                st.stop()
+
             token_data = token_res.json()
             access_token = token_data.get("access_token")
 
@@ -58,9 +62,9 @@ if "user_email" not in st.session_state:
                     st.query_params.clear()
                     st.rerun()
                 else:
-                    st.error("No se pudo obtener el correo electrónico del usuario.")
+                    st.error(f"No se pudo obtener el correo electrónico del usuario. Detalle: {user_res.text}")
             else:
-                st.error("No se pudo obtener el token de acceso de Google.")
+                st.error(f"No se pudo obtener el token de acceso de Google. Detalle: {token_res.text}")
         except Exception as e:
             st.error(f"⚠️ Error durante la autenticación nativa con Google: {e}")
 
