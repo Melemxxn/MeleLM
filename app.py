@@ -5,8 +5,9 @@ import google.generativeai as genai
 import json
 import uuid
 import time
+import urllib.parse
+import requests
 from datetime import datetime, timezone
-from streamlit_oauth import OAuth2Component
 
 # ==========================================
 # 1. Configuración inicial de la página
@@ -21,57 +22,58 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 
 # ==========================================
-# 2. Autenticación Google OAuth & Gatekeeper
+# 2. Autenticación Google OAuth & Gatekeeper (Nativo con requests & urllib)
 # ==========================================
-def get_oauth_component():
-    client_id = st.secrets["google_oauth"]["client_id"]
-    client_secret = st.secrets["google_oauth"]["client_secret"]
-    redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
-    authorize_endpoint = "https://accounts.google.com/o/oauth2/v2/auth"
-    token_endpoint = "https://oauth2.googleapis.com/token"
-    refresh_token_endpoint = "https://oauth2.googleapis.com/token"
-    revoke_token_endpoint = "https://oauth2.googleapis.com/revoke"
-
-    return OAuth2Component(
-        client_id=client_id,
-        client_secret=client_secret,
-        authorize_endpoint=authorize_endpoint,
-        token_endpoint=token_endpoint,
-        refresh_token_endpoint=refresh_token_endpoint,
-        revoke_token_endpoint=revoke_token_endpoint,
-    ), redirect_uri
-
-# Comprobar estado de autenticación
-oauth2, redirect_uri = get_oauth_component()
+client_id = st.secrets["google_oauth"]["client_id"]
+client_secret = st.secrets["google_oauth"]["client_secret"]
+redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
 
 # Manejar el callback de Google OAuth mediante query_params
 if "user_email" not in st.session_state:
     code = st.query_params.get("code")
     if code:
         try:
-            token = oauth2.get_access_token(code, redirect_uri=redirect_uri)
-            email = None
-            if isinstance(token, dict):
-                id_token = token.get("id_token")
-                if id_token:
-                    import jwt
-                    decoded = jwt.decode(id_token, options={"verify_signature": False})
-                    email = decoded.get("email")
-                if not email and "userinfo" in token:
-                    email = token["userinfo"].get("email")
+            token_url = "https://oauth2.googleapis.com/token"
+            data = {
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code"
+            }
+            token_res = requests.post(token_url, data=data)
+            token_data = token_res.json()
+            access_token = token_data.get("access_token")
 
-            if email:
-                st.session_state["user_email"] = email
-                st.session_state["user_id"] = email
-                st.query_params.clear()
-                st.rerun()
+            if access_token:
+                user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+                headers = {"Authorization": f"Bearer {access_token}"}
+                user_res = requests.get(user_info_url, headers=headers)
+                user_info = user_res.json()
+                email = user_info.get("email")
+
+                if email:
+                    st.session_state["user_email"] = email
+                    st.session_state["user_id"] = email
+                    st.query_params.clear()
+                    st.rerun()
+                else:
+                    st.error("No se pudo obtener el correo electrónico del usuario.")
             else:
-                st.error("No se pudo obtener el correo electrónico desde el token.")
+                st.error("No se pudo obtener el token de acceso de Google.")
         except Exception as e:
-            st.error(f"⚠️ Error durante el intercambio de token: {e}")
+            st.error(f"⚠️ Error durante la autenticación nativa con Google: {e}")
 
 if "user_email" not in st.session_state:
-    auth_url = oauth2.get_authorization_url(redirect_uri=redirect_uri, scope="openid email profile")
+    params = {
+        "client_id": client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "prompt": "select_account"
+    }
+    auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urllib.parse.urlencode(params)}"
 
     st.markdown(
         f"""
