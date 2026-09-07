@@ -42,71 +42,198 @@ def get_oauth_component():
     ), redirect_uri
 
 # Comprobar estado de autenticación
+oauth2, redirect_uri = get_oauth_component()
+
+# Manejar el callback de Google OAuth mediante query_params
 if "user_email" not in st.session_state:
-    st.markdown(
-        """
-        <style>
-        [data-testid="stSidebar"] { display: none !important; }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
+    code = st.query_params.get("code")
+    if code:
+        try:
+            token = oauth2.get_access_token(code, redirect_uri=redirect_uri)
+            email = None
+            if isinstance(token, dict):
+                id_token = token.get("id_token")
+                if id_token:
+                    import jwt
+                    decoded = jwt.decode(id_token, options={"verify_signature": False})
+                    email = decoded.get("email")
+                if not email and "userinfo" in token:
+                    email = token["userinfo"].get("email")
+
+            if email:
+                st.session_state["user_email"] = email
+                st.session_state["user_id"] = email
+                st.query_params.clear()
+                st.rerun()
+            else:
+                st.error("No se pudo obtener el correo electrónico desde el token.")
+        except Exception as e:
+            st.error(f"⚠️ Error durante el intercambio de token: {e}")
+
+if "user_email" not in st.session_state:
+    auth_url = oauth2.get_authorization_url(redirect_uri=redirect_uri, scope="openid email profile")
 
     st.markdown(
-        """
-        <div style="text-align: center; padding: 40px 20px;">
-            <h1 style="font-size: 3rem; margin-bottom: 0;">📚 MeleLM</h1>
-            <p style="font-size: 1.2rem; color: #666; margin-top: 5px;">Tu asistente inteligente para análisis de documentos</p>
+        f"""
+        <style>
+        /* Ocultar barra lateral, header y footer por defecto en la pantalla de login */
+        [data-testid="stSidebar"] {{ display: none !important; }}
+        header {{ visibility: hidden !important; }}
+        footer {{ visibility: hidden !important; }}
+        
+        /* Fondo general oscuro */
+        .stApp {{
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%) !important;
+        }}
+
+        /* Contenedor wrapper centrado */
+        .login-wrapper {{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            padding: 1rem;
+        }}
+
+        /* Tarjeta modal ALMA Dark UI */
+        .login-card {{
+            width: 100%;
+            max-width: 400px;
+            background: #161b22;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            margin: 0 auto;
+        }}
+
+        /* Isotipo / Avatar circular superior */
+        .login-logo-circle {{
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1.25rem auto;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }}
+
+        /* Título principal y subtítulo */
+        .login-title {{
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 0.25rem 0;
+            letter-spacing: -0.3px;
+        }}
+
+        .login-subtitle {{
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            color: #8b949e;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+        }}
+
+        /* Divisor elegante */
+        .login-divider {{
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #6e7681;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }}
+
+        .login-divider::before, .login-divider::after {{
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }}
+
+        .login-divider:not(:empty)::before {{
+            margin-right: .75em;
+        }}
+
+        .login-divider:not(:empty)::after {{
+            margin-left: .75em;
+        }}
+
+        /* Botón de Google nativo HTML <a> sin iframe */
+        .google-login-btn {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            background-color: #21262d;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 0.85rem 1.25rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none !important;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+        }}
+
+        .google-login-btn:hover {{
+            background-color: #30363d;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }}
+
+        .google-icon {{
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }}
+
+        /* Pie de tarjeta */
+        .login-footer-note {{
+            font-size: 0.75rem;
+            color: #6e7681;
+            margin-top: 1.5rem;
+            line-height: 1.4;
+        }}
+        </style>
+
+        <div class="login-wrapper">
+            <div class="login-card">
+                <div class="login-logo-circle">M</div>
+                <h2 class="login-title">MeleLM</h2>
+                <div class="login-subtitle">ANÁLISIS INTELIGENTE DE DOCUMENTOS</div>
+                <div class="login-divider">ACCEDER CON TU CUENTA</div>
+                <a href="{auth_url}" target="_top" class="google-login-btn">
+                    <svg class="google-icon" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>Continuar con Google</span>
+                </a>
+                <p class="login-footer-note">Tus documentos se procesan de forma privada</p>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    with st.container():
-        st.markdown(
-            """
-            <div style="max-width: 450px; margin: 0 auto; text-align: center; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background-color: rgba(255,255,255,0.05);">
-                <h3>Iniciar Sesión</h3>
-                <p style="color: #888; font-size: 0.95rem;">Accede a tus documentos, resumenes y chats personalizados</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            try:
-                oauth2, redirect_uri = get_oauth_component()
-                result = oauth2.authorize_button(
-                    "Continuar con Google",
-                    redirect_uri=redirect_uri,
-                    scope="openid email profile",
-                    key="google_login",
-                )
-
-                if result:
-                    email = None
-                    if isinstance(result, dict):
-                        token = result.get("token", {})
-                        id_token = token.get("id_token") or result.get("id_token")
-                        if id_token:
-                            import jwt
-                            decoded = jwt.decode(id_token, options={"verify_signature": False})
-                            email = decoded.get("email")
-                        if not email and "userinfo" in result:
-                            email = result["userinfo"].get("email")
-                        if not email and "id_token" in token:
-                            import jwt
-                            decoded = jwt.decode(token["id_token"], options={"verify_signature": False})
-                            email = decoded.get("email")
-
-                    if email:
-                        st.session_state["user_email"] = email
-                        st.session_state["user_id"] = email
-                        st.rerun()
-                    else:
-                        st.error("No se pudo obtener el correo electrónico desde el token de autenticación.")
-            except Exception as e:
-                st.error(f"⚠️ Error al conectar con Google OAuth: {e}")
 
     st.stop()
 
