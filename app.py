@@ -601,7 +601,44 @@ with st.sidebar:
     
     # Badge con información del usuario autenticado y botón de cierre de sesión
     user_email = st.session_state.get("user_email", "")
-    st.markdown(f"👤 **{user_email}**")
+    inicial = user_email[0].upper() if user_email else "U"
+
+    perfil_html = f"""
+    <div style="
+        display: flex;
+        align-items: center;
+        background-color: #161b22;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.05);
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    ">
+        <div style="
+            background: linear-gradient(135deg, #6e40c9, #3b82f6);
+            color: white;
+            min-width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin-right: 12px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        ">
+            {inicial}
+        </div>
+        <div style="overflow: hidden; width: 100%;">
+            <div style="font-size: 10px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Cuenta conectada</div>
+            <div style="font-size: 13px; color: #e6edf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">
+                {user_email}
+            </div>
+        </div>
+    </div>
+    """
+    st.sidebar.markdown(perfil_html, unsafe_allow_html=True)
     if st.button("🚪 Cerrar sesión", use_container_width=True):
         st.session_state.clear()
         st.rerun()
