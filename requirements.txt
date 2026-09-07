@@ -1,0 +1,6 @@
+streamlit
+google-generativeai
+firebase-admin
+streamlit-oauth
+pypdf2
+python-docx
