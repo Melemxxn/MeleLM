@@ -32,6 +32,18 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
+# Sincronización del usuario en Firestore (Asegurado después de definir db)
+if st.session_state.get("user_email") and not st.session_state.get("user_synced_firestore", False):
+    try:
+        from datetime import datetime, timezone
+        db.collection("users").document(st.session_state.user_email).set({
+            "email": st.session_state.user_email,
+            "ultimo_acceso": datetime.now(timezone.utc).isoformat()
+        }, merge=True)
+        st.session_state.user_synced_firestore = True
+    except Exception as err:
+        print(f"Error sincronizando con Firestore: {err}")
+
 # ==========================================
 # 2. Autenticación Google OAuth & Gatekeeper (Nativo con requests & urllib)
 # ==========================================
@@ -302,16 +314,6 @@ if "user_email" not in st.session_state:
 # ==========================================
 # Base de Datos (Firebase Firestore)
 # ==========================================
-if 'db' in locals() and db is not None and st.session_state.get("user_email") and not st.session_state.get("user_synced_firestore"):
-    try:
-        user_doc_ref = db.collection("users").document(st.session_state.user_email)
-        user_doc_ref.set({
-            "email": st.session_state.user_email,
-            "ultimo_acceso": datetime.now(timezone.utc).isoformat()
-        }, merge=True)
-        st.session_state.user_synced_firestore = True
-    except Exception as err:
-        st.sidebar.warning(f"No se pudo sincronizar usuario con Firestore: {err}")
 
 def save_session_to_db():
     """
