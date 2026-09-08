@@ -952,8 +952,18 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"], avatar=avatar_actual):
         st.markdown(message["content"])
 
-# 3. Caja de chat siempre visible
-if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
+# 1. Capturar texto normal o botón pulsado
+entrada_texto = st.chat_input("Escribe un mensaje para MeleLM...")
+prompt_actual = None
+
+if entrada_texto:
+    prompt_actual = entrada_texto
+elif st.session_state.get("prompt_sugerido"):
+    prompt_actual = st.session_state.prompt_sugerido
+    del st.session_state["prompt_sugerido"] # Lo borramos para que no se repita en bucle
+
+# 2. Si hay un prompt (por cualquier vía), ejecutar la lógica
+if prompt_actual:
     # Si no hay sesión, la creamos al vuelo
     current_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
     if not current_id:
@@ -963,7 +973,7 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
         st.session_state.current_session_id = nuevo_id
         st.session_state["session_id"] = nuevo_id
         
-        titulo_chat = prompt[:25] + "..." if len(prompt) > 25 else prompt
+        titulo_chat = prompt_actual[:25] + "..." if len(prompt_actual) > 25 else prompt_actual
         st.session_state["session_title"] = titulo_chat
         
         if 'db' in locals() and db is not None:
@@ -977,10 +987,10 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
             })
 
     # Mostrar mensaje del usuario
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state.messages.append({"role": "user", "content": prompt_actual})
     st.session_state["chat_history"] = st.session_state.messages
     with st.chat_message("user", avatar=avatar_usuario):
-        st.markdown(prompt)
+        st.markdown(prompt_actual)
 
     # 4. Respuesta del modelo Gemini
     if not api_ready:
@@ -1008,7 +1018,7 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
                 {formatted_history}
 
                 Pregunta del usuario:
-                {prompt}
+                {prompt_actual}
                 """
 
                 # 1. Llamar al modelo activando el streaming
