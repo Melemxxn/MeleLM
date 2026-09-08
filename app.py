@@ -7,6 +7,7 @@ import uuid
 import time
 import urllib.parse
 import requests
+import copy
 from datetime import datetime, timezone
 
 # ==========================================
@@ -652,6 +653,23 @@ with st.sidebar:
                 with col1:
                     # Botón principal para cargar la sesión
                     if st.button(f"📄 {titulo[:20]}", key=f"load_{sesion.id}", use_container_width=True):
+                        st.session_state.current_session_id = sesion.id
+                        st.session_state.session_id = sesion.id
+                        # Forzar una copia profunda e independiente del historial
+                        raw_history = datos.get("historial_chat", [])
+                        if isinstance(raw_history, str):
+                            try:
+                                raw_history = json.loads(raw_history)
+                            except Exception:
+                                raw_history = []
+                        st.session_state.messages = copy.deepcopy(raw_history)
+                        st.session_state.chat_history = st.session_state.messages
+                        
+                        if "pdf_text" in datos:
+                            st.session_state.pdf_text = datos["pdf_text"]
+                        else:
+                            st.session_state.pdf_text = ""
+                            
                         load_session_from_db(sesion.id)
                         st.rerun()
 
