@@ -681,6 +681,10 @@ with st.sidebar:
         )
         st.sidebar.divider()
 
+    st.sidebar.divider()
+    usar_busqueda = st.sidebar.toggle("🌐 Búsqueda en Internet", value=False)
+    st.sidebar.caption("Permite a MeleLM buscar información actualizada en Google.")
+
     st.divider()
     st.subheader("🕒 Historial de Sesiones")
 
