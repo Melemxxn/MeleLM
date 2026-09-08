@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import PyPDF2
 import docx
@@ -76,7 +77,14 @@ if st.session_state.get("user_email"):
 # ==========================================
 client_id = st.secrets["google_oauth"]["client_id"]
 client_secret = st.secrets["google_oauth"]["client_secret"]
-redirect_uri = st.secrets["google_oauth"]["redirect_uri"]
+
+# Detectar entorno automáticamente
+if st.secrets.get("REDIRECT_URI"):
+    redirect_uri = st.secrets["REDIRECT_URI"]
+elif "STREAMLIT_SERVER_BASE_URL" in os.environ or not os.path.exists(".streamlit/secrets.toml"):
+    redirect_uri = "https://melelm.streamlit.app"
+else:
+    redirect_uri = "http://localhost:8501"
 
 # Manejar el callback de Google OAuth mediante query_params
 if "user_email" not in st.session_state:
