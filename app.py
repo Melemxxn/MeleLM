@@ -8,6 +8,8 @@ import time
 import urllib.parse
 import requests
 import copy
+import io
+from docx import Document
 from datetime import datetime, timezone
 
 # ==========================================
@@ -646,6 +648,32 @@ with st.sidebar:
             if "podcast" in key.lower() or "audio" in key.lower():
                 del st.session_state[key]
         st.rerun()
+
+    # Opcion de exportar chat si hay mensajes
+    if st.session_state.get("messages"):
+        st.sidebar.caption("📥 **Exportar conversación**")
+        
+        # Crear documento Word en memoria
+        doc = Document()
+        doc.add_heading(st.session_state.get('titulo', 'Historial de Chat - MeleLM'), level=1)
+        
+        for msg in st.session_state.messages:
+            rol = "Tú" if msg["role"] == "user" else "MeleLM"
+            p = doc.add_paragraph()
+            p.add_run(f"{rol}:\n").bold = True
+            p.add_run(msg["content"])
+            
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        
+        st.sidebar.download_button(
+            label="📄 Descargar en Word",
+            data=buffer.getvalue(),
+            file_name="chat_melelm.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )
+        st.sidebar.divider()
 
     st.divider()
     st.subheader("🕒 Historial de Sesiones")
