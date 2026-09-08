@@ -464,12 +464,11 @@ def start_new_session():
 def init_gemini_api():
     """
     Lee y configura la API Key desde los secretos de Streamlit (st.secrets["GEMINI_API_KEY"]).
-    Instancia directamente la versión del modelo 'gemini-1.5-flash'.
+     Configura genai y valida la API Key.
     """
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        st.session_state["model"] = "gemini-1.5-flash"
         return True
     except KeyError:
         st.error(
@@ -749,10 +748,6 @@ with st.sidebar:
     else:
         st.sidebar.caption("No hay sesiones guardadas todavía.")
 
-    if st.session_state.get("model"):
-        st.divider()
-        st.caption(f"🤖 Modelo activo: `{st.session_state['model']}`")
-
 # ==========================================
 # Área Principal - Interfaz SaaS de la Aplicación
 # ==========================================
@@ -816,6 +811,24 @@ with col_izq:
     )
 
 api_ready = init_gemini_api()
+
+if api_ready:
+    with st.sidebar:
+        st.divider()
+        st.subheader("🤖 Modelo de IA")
+        try:
+            # Obtener lista real de modelos autorizados para esta API Key
+            modelos = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            
+            # Selector dinámico
+            modelo_seleccionado = st.selectbox(
+                "Selecciona el motor:",
+                modelos,
+                index=modelos.index("gemini-1.5-flash") if "gemini-1.5-flash" in modelos else 0
+            )
+            st.session_state["model"] = modelo_seleccionado
+        except Exception as e:
+            st.error(f"Error cargando modelos: {e}")
 
 # Agrupar zona de carga en st.container()
 with st.container():
