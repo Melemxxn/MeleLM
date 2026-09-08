@@ -649,10 +649,14 @@ with st.sidebar:
                 datos = sesion.to_dict()
                 titulo = datos.get("titulo", "Documento sin título")
 
+                es_activa = (sesion.id == st.session_state.get("current_session_id") or sesion.id == st.session_state.get("session_id"))
+                button_type = "primary" if es_activa else "secondary"
+                icono_chat = "✨" if es_activa else "📄"
+
                 col1, col2 = st.sidebar.columns([8, 2])
                 with col1:
-                    # Botón principal para cargar la sesión
-                    if st.button(f"📄 {titulo[:20]}", key=f"load_{sesion.id}", use_container_width=True):
+                    # Botón principal para cargar la sesión (destacado si es la sesión activa)
+                    if st.button(f"{icono_chat} {titulo[:20]}", key=f"load_{sesion.id}", use_container_width=True, type=button_type):
                         st.session_state.current_session_id = sesion.id
                         st.session_state.session_id = sesion.id
                         # Forzar una copia profunda e independiente del historial
