@@ -1043,21 +1043,22 @@ if prompt_actual:
                 {prompt_actual}
                 """
 
-                # 1. Llamar al modelo activando el streaming
-                response = model.generate_content(prompt_text, stream=True)
-                
-                # 2. Contenedor para el efecto de escritura
-                placeholder = st.empty()
-                full_response = ""
-                
-                # 3. Dibujar las palabras conforme llegan
-                for chunk in response:
-                    if chunk.text:
-                        full_response += chunk.text
-                        placeholder.markdown(full_response + " ▌")
-                        
-                # 4. Quitar el cursor final
-                placeholder.markdown(full_response)
+                with st.spinner("MeleLM está pensando..."):
+                    # 1. Llamar al modelo activando el streaming
+                    response = model.generate_content(prompt_text, stream=True)
+                    
+                    # 2. Contenedor para el efecto de escritura
+                    placeholder = st.empty()
+                    full_response = ""
+                    
+                    # 3. Dibujar las palabras conforme llegan
+                    for chunk in response:
+                        if chunk.text:
+                            full_response += chunk.text
+                            placeholder.markdown(full_response + " ▌")
+                            
+                    # 4. Quitar el cursor final
+                    placeholder.markdown(full_response)
 
             # Guardar en el array y en Firebase una vez terminado
             st.session_state.messages.append({"role": "assistant", "content": full_response})
