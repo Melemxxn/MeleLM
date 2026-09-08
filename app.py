@@ -875,10 +875,17 @@ if "messages" not in st.session_state:
 # Mantener ambas claves sincronizadas
 st.session_state["chat_history"] = st.session_state.messages
 
-# 2. Renderizar historial de chat
+# 2. Renderizar historial de chat con avatares personalizados
 st.subheader("💬 Chat interactivo con MeleLM")
+
+# Definir avatares
+avatar_usuario = st.session_state.get("user_picture") if st.session_state.get("user_picture") else "👤"
+avatar_ia = "✨" # Icono aesthetic para MeleLM
+
+# Renderizar historial de chat con avatares personalizados
 for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
+    avatar_actual = avatar_usuario if message["role"] == "user" else avatar_ia
+    with st.chat_message(message["role"], avatar=avatar_actual):
         st.markdown(message["content"])
 
 # 3. Caja de chat siempre visible
@@ -908,7 +915,7 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
     # Mostrar mensaje del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state["chat_history"] = st.session_state.messages
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar=avatar_usuario):
         st.markdown(prompt)
 
     # 4. Respuesta del modelo Gemini
@@ -916,7 +923,7 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
         st.error("⚠️ La API de Gemini no está configurada correctamente en los secretos.")
     else:
         try:
-            with st.chat_message("assistant"):
+            with st.chat_message("assistant", avatar=avatar_ia):
                 with st.spinner("MeleLM está pensando..."):
                     response_text = answer_chat_question(
                         text=st.session_state.get("pdf_text", ""),
