@@ -22,6 +22,16 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.cloud import firestore as google_firestore
 
+# 1. INICIALIZACIÓN GLOBAL DE FIREBASE
+if not firebase_admin._apps:
+    try:
+        cred = credentials.Certificate(dict(st.secrets["firebase"]))
+        firebase_admin.initialize_app(cred)
+    except Exception as e:
+        st.error(f"Error inicializando Firebase: {e}")
+
+db = firestore.client()
+
 # ==========================================
 # 2. Autenticación Google OAuth & Gatekeeper (Nativo con requests & urllib)
 # ==========================================
@@ -292,23 +302,6 @@ if "user_email" not in st.session_state:
 # ==========================================
 # Base de Datos (Firebase Firestore)
 # ==========================================
-def init_firebase():
-    """
-    Inicializa Firebase Admin SDK usando credenciales de st.secrets['firebase'].
-    Devuelve el cliente de Firestore.
-    """
-    if not firebase_admin._apps:
-        try:
-            firebase_config = dict(st.secrets["firebase"])
-            cred = credentials.Certificate(firebase_config)
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            st.error(f"⚠️ Error al inicializar Firebase: {e}")
-            st.stop()
-    return firestore.client()
-
-db = init_firebase()
-
 if 'db' in locals() and db is not None and st.session_state.get("user_email") and not st.session_state.get("user_synced_firestore"):
     try:
         user_doc_ref = db.collection("users").document(st.session_state.user_email)
