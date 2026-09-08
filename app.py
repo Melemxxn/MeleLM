@@ -877,7 +877,30 @@ if st.session_state.get("pdf_text"):
             st.markdown(message["content"])
 
     # Input del usuario para nuevas preguntas
-    if prompt := st.chat_input("Haz una pregunta sobre el contenido del documento..."):
+    if prompt := st.chat_input("Haz una pregunta o habla con MeleLM..."):
+        # Generar sesión automáticamente si es un chat libre sin documento
+        current_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
+        if not current_id:
+            import uuid
+            from datetime import datetime, timezone
+            nuevo_id = str(uuid.uuid4())
+            st.session_state.current_session_id = nuevo_id
+            st.session_state["session_id"] = nuevo_id
+            
+            # El título del chat será el principio del primer mensaje
+            titulo_chat = prompt[:25] + "..." if len(prompt) > 25 else prompt
+            st.session_state["session_title"] = titulo_chat
+            
+            if 'db' in locals() and db is not None:
+                db.collection("sesiones").document(nuevo_id).set({
+                    "id": nuevo_id,
+                    "user_id": st.session_state.get("user_email", "usuario_anonimo"),
+                    "titulo": titulo_chat,
+                    "pdf_text": "",
+                    "historial_chat": "[]",
+                    "fecha": datetime.now(timezone.utc).isoformat()
+                })
+
         if not api_ready:
             st.error("⚠️ La API de Gemini no está configurada correctamente en los secretos.")
         else:
@@ -909,6 +932,3 @@ if st.session_state.get("pdf_text"):
                                     print(f"Error al guardar mensaje en Firestore: {e}")
             except Exception as e:
                 st.error(f"Error interno capturado: {e}")
-
-elif not uploaded_files:
-    st.info("Por favor, sube un archivo (PDF, DOCX o TXT) o selecciona una sesión anterior en la barra lateral para comenzar.")
