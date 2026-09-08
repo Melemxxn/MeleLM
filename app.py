@@ -324,7 +324,7 @@ def save_session_to_db():
     glossary = st.session_state.get("glossary", "")
     study_guide = st.session_state.get("study_guide", "")
     guion = st.session_state.get("guion_generado", "")
-    user_id = st.session_state.get("user_email", "usuario_anonimo")
+    user_id = st.session_state.user_email if "user_email" in st.session_state else st.session_state.get("user_email", "usuario_anonimo")
 
     session_doc = {
         "id": session_id,
@@ -604,6 +604,18 @@ def answer_chat_question(text, chat_history, question):
     """
     response = model.generate_content(prompt)
     return response.text
+
+if st.session_state.get("user_email") and not st.session_state.get("user_synced_firestore"):
+    try:
+        # Registrar o actualizar usuario en Firestore
+        user_doc_ref = db.collection("users").document(st.session_state.user_email)
+        user_doc_ref.set({
+            "email": st.session_state.user_email,
+            "ultimo_acceso": datetime.now(timezone.utc).isoformat()
+        }, merge=True)
+        st.session_state.user_synced_firestore = True
+    except Exception as err:
+        st.sidebar.error(f"Error al sincronizar usuario: {err}")
 
 # ==========================================
 # Sidebar (Barra Lateral - Historial tipo ChatGPT)
