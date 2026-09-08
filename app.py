@@ -487,6 +487,7 @@ def extract_text_from_pdfs(archivos_subidos):
 
     for archivo in archivos_subidos:
         nombre = archivo.name.lower()
+        texto_combinado += f"\n\n--- INICIO DEL DOCUMENTO: {archivo.name} ---\n\n"
         if nombre.endswith(".pdf"):
             try:
                 reader = PyPDF2.PdfReader(archivo)
@@ -513,6 +514,8 @@ def extract_text_from_pdfs(archivos_subidos):
                 texto_combinado += content + "\n"
             except Exception as e:
                 st.error(f"Error al leer el archivo TXT {archivo.name}: {e}")
+        
+        texto_combinado += f"\n\n--- FIN DEL DOCUMENTO: {archivo.name} ---\n"
 
     return texto_combinado, total_paginas
 
