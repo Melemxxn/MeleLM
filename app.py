@@ -964,17 +964,6 @@ if not st.session_state.messages:
     nombre = st.session_state.get("username", "Usuario")
     st.markdown(f"<h2 style='text-align: center; color: #a1a1aa; margin-top: 50px;'>¡Hola, {nombre}! 👋</h2>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #71717a; margin-bottom: 30px;'>¿En qué te puedo ayudar hoy?</p>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("📝 Resume el texto", use_container_width=True):
-            st.session_state.prompt_sugerido = "Hazme un resumen estructurado y detallado del documento que he subido."
-    with col2:
-        if st.button("🤔 Explica un concepto", use_container_width=True):
-            st.session_state.prompt_sugerido = "Explícame el concepto principal del documento de forma sencilla."
-    with col3:
-        if st.button("💬 Charla casual", use_container_width=True):
-            st.session_state.prompt_sugerido = "¡Hola MeleLM! ¿Qué tal estás hoy? Cuéntame un dato curioso."
 
 # Renderizar historial de chat con avatares personalizados
 for message in st.session_state.messages:
