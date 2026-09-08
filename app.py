@@ -968,25 +968,57 @@ if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
     else:
         try:
             with st.chat_message("assistant", avatar=avatar_ia):
-                with st.spinner("MeleLM está pensando..."):
-                    response_text = answer_chat_question(
-                        text=st.session_state.get("pdf_text", ""),
-                        chat_history=st.session_state.messages,
-                        question=prompt
-                    )
-                    if response_text:
-                        st.markdown(response_text)
-                        st.session_state.messages.append({"role": "assistant", "content": response_text})
-                        st.session_state["chat_history"] = st.session_state.messages
-                        save_session_to_db()
+                model_name = st.session_state.get("model", "models/gemini-1.5-flash")
+                model = genai.GenerativeModel(model_name)
+                texto_recortado = st.session_state.get("pdf_text", "")[:30000]
+                formatted_history = ""
+                for msg in st.session_state.messages[-6:]:
+                    role_label = "Usuario" if msg["role"] == "user" else "Asistente"
+                    formatted_history += f"{role_label}: {msg['content']}\n"
 
-                        curr_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
-                        if 'db' in locals() and db is not None and curr_id:
-                            try:
-                                db.collection("sesiones").document(curr_id).update({
-                                    "historial_chat": json.dumps(st.session_state.messages)
-                                })
-                            except Exception as e:
-                                print(f"Error al guardar mensaje en Firestore: {e}")
+                prompt_text = f"""
+                Eres MeleLM, un asistente de IA inteligente, empático y conversacional. Tienes acceso a un documento proporcionado por el usuario como contexto. Si el usuario te hace preguntas sobre el documento, utiliza esa información para responder. SIN EMBARGO, si el usuario te hace preguntas generales, te saluda, intenta charlar contigo o te cuenta problemas (ej. 'qué dura es la vida'), debes responder de forma natural, amistosa, empática y humana, como lo me lo haría un asistente general avanzado. En esos casos, NO digas que la información no está en el documento, simplemente sigue la conversación de manera natural.
+
+                Contexto del Documento:
+                \"\"\"
+                {texto_recortado}
+                \"\"\"
+
+                Historial de la conversación reciente:
+                {formatted_history}
+
+                Pregunta del usuario:
+                {prompt}
+                """
+
+                # 1. Llamar al modelo activando el streaming
+                response = model.generate_content(prompt_text, stream=True)
+                
+                # 2. Contenedor para el efecto de escritura
+                placeholder = st.empty()
+                full_response = ""
+                
+                # 3. Dibujar las palabras conforme llegan
+                for chunk in response:
+                    if chunk.text:
+                        full_response += chunk.text
+                        placeholder.markdown(full_response + " ▌")
+                        
+                # 4. Quitar el cursor final
+                placeholder.markdown(full_response)
+
+            # Guardar en el array y en Firebase una vez terminado
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            st.session_state["chat_history"] = st.session_state.messages
+            save_session_to_db()
+
+            curr_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
+            if 'db' in locals() and db is not None and curr_id:
+                try:
+                    db.collection("sesiones").document(curr_id).update({
+                        "historial_chat": json.dumps(st.session_state.messages)
+                    })
+                except Exception as e:
+                    print(f"Error actualizando DB: {e}")
         except Exception as e:
             st.error(f"Error interno capturado: {e}")
