@@ -404,7 +404,15 @@ def load_session_from_db(session_id):
             st.session_state["resumen_generado"] = data.get("resumen", "")
             st.session_state["glossary"] = data.get("glossary", "")
             st.session_state["study_guide"] = data.get("study_guide", "")
-            st.session_state["guion_generado"] = data.get("guion", "")
+            
+            # Restaurar datos del podcast si existen
+            podcast_val = data.get("podcast_data") or data.get("guion", "")
+            if podcast_val:
+                st.session_state["guion_generado"] = podcast_val
+            else:
+                if "guion_generado" in st.session_state:
+                    del st.session_state["guion_generado"]
+
             historial_json = data.get("historial_chat", "[]")
             try:
                 st.session_state["chat_history"] = json.loads(historial_json) if historial_json else []
@@ -836,6 +844,17 @@ if st.session_state.get("pdf_text"):
                         if result:
                             st.session_state["guion_generado"] = result
                             save_session_to_db()
+
+                            curr_session_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
+                            if 'db' in locals() and db is not None and curr_session_id:
+                                try:
+                                    db.collection("sesiones").document(curr_session_id).update({
+                                        "podcast_data": st.session_state.get("guion_generado"),
+                                        "guion": st.session_state.get("guion_generado")
+                                    })
+                                except Exception as e:
+                                    print(f"Error guardando podcast: {e}")
+
                             st.rerun()
                 except Exception as e:
                     st.error(f"Error interno capturado: {e}")
