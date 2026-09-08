@@ -20,6 +20,7 @@ st.set_page_config(
 
 import firebase_admin
 from firebase_admin import credentials, firestore
+from google.cloud import firestore as google_firestore
 
 # ==========================================
 # 2. Autenticación Google OAuth & Gatekeeper (Nativo con requests & urllib)
@@ -60,21 +61,15 @@ if "user_email" not in st.session_state:
                     st.session_state["user_email"] = email
                     st.session_state["user_id"] = email
 
-                    # Registro/actualización del usuario en Firestore (colección 'users')
-                    try:
-                        db = init_firebase()
-                        user_ref = db.collection("users").document(email)
-                        doc = user_ref.get()
-                        user_data = {
-                            "email": email,
-                            "last_login": firestore.SERVER_TIMESTAMP
-                        }
-                        if not doc.exists:
-                            user_data["first_login"] = firestore.SERVER_TIMESTAMP
-
-                        user_ref.set(user_data, merge=True)
-                    except Exception as e:
-                        print(f"Error al registrar usuario en Firestore: {e}")
+                    if db is not None and st.session_state.get("user_email"):
+                        try:
+                            user_ref = db.collection("users").document(st.session_state.user_email)
+                            user_ref.set({
+                                "email": st.session_state.user_email,
+                                "ultimo_acceso": firestore.SERVER_TIMESTAMP
+                            }, merge=True)
+                        except Exception as e:
+                            st.error(f"Error registrando usuario en Firestore: {e}")
 
                     st.query_params.clear()
                     st.rerun()
@@ -329,7 +324,7 @@ def save_session_to_db():
     glossary = st.session_state.get("glossary", "")
     study_guide = st.session_state.get("study_guide", "")
     guion = st.session_state.get("guion_generado", "")
-    user_id = st.session_state.get("user_id")
+    user_id = st.session_state.get("user_email", "usuario_anonimo")
 
     session_doc = {
         "id": session_id,
@@ -353,7 +348,7 @@ def get_all_sessions():
     """
     Obtiene todas las sesiones guardadas del usuario actual ordenadas por fecha descendente.
     """
-    user_id = st.session_state.get("user_id")
+    user_id = st.session_state.get("user_email", "usuario_anonimo")
     try:
         docs = (
             db.collection("sesiones")
