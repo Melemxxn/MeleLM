@@ -619,6 +619,13 @@ with st.sidebar:
 
     if st.button("➕ Nuevo Documento", use_container_width=True, type="primary"):
         start_new_session()
+        st.session_state.current_session_id = None
+        st.session_state.messages = []
+        st.session_state.pdf_text = ""
+        # Escanear y limpiar cualquier estado del podcast generado
+        for key in list(st.session_state.keys()):
+            if "podcast" in key.lower() or "audio" in key.lower():
+                del st.session_state[key]
         st.rerun()
 
     st.divider()
