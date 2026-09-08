@@ -866,69 +866,76 @@ if st.session_state.get("pdf_text"):
             )
         st.divider()
 
-    # ==========================================
-    # Sección de Chat Interactivo (Investigador Riguroso)
-    # ==========================================
-    st.subheader("💬 Chat interactivo con el documento")
+st.divider()
 
-    # Renderizar historial de conversación existente
-    for message in st.session_state.get("chat_history", []):
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+# 1. Asegurar sincronización de estado de mensajes
+if "messages" not in st.session_state:
+    st.session_state.messages = st.session_state.get("chat_history", [])
 
-    # Input del usuario para nuevas preguntas
-    if prompt := st.chat_input("Haz una pregunta o habla con MeleLM..."):
-        # Generar sesión automáticamente si es un chat libre sin documento
-        current_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
-        if not current_id:
-            import uuid
-            from datetime import datetime, timezone
-            nuevo_id = str(uuid.uuid4())
-            st.session_state.current_session_id = nuevo_id
-            st.session_state["session_id"] = nuevo_id
-            
-            # El título del chat será el principio del primer mensaje
-            titulo_chat = prompt[:25] + "..." if len(prompt) > 25 else prompt
-            st.session_state["session_title"] = titulo_chat
-            
-            if 'db' in locals() and db is not None:
-                db.collection("sesiones").document(nuevo_id).set({
-                    "id": nuevo_id,
-                    "user_id": st.session_state.get("user_email", "usuario_anonimo"),
-                    "titulo": titulo_chat,
-                    "pdf_text": "",
-                    "historial_chat": "[]",
-                    "fecha": datetime.now(timezone.utc).isoformat()
-                })
+# Mantener ambas claves sincronizadas
+st.session_state["chat_history"] = st.session_state.messages
 
-        if not api_ready:
-            st.error("⚠️ La API de Gemini no está configurada correctamente en los secretos.")
-        else:
-            try:
-                with st.chat_message("user"):
-                    st.markdown(prompt)
-                
-                st.session_state["chat_history"].append({"role": "user", "content": prompt})
+# 2. Renderizar historial de chat
+st.subheader("💬 Chat interactivo con MeleLM")
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-                with st.chat_message("assistant"):
-                    with st.spinner("MeleLM está pensando..."):
-                        response_text = answer_chat_question(
-                            text=st.session_state["pdf_text"],
-                            chat_history=st.session_state["chat_history"],
-                            question=prompt
-                        )
-                        if response_text:
-                            st.markdown(response_text)
-                            st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
-                            save_session_to_db()
+# 3. Caja de chat siempre visible
+if prompt := st.chat_input("Escribe un mensaje para MeleLM..."):
+    # Si no hay sesión, la creamos al vuelo
+    current_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
+    if not current_id:
+        import uuid
+        from datetime import datetime, timezone
+        nuevo_id = str(uuid.uuid4())
+        st.session_state.current_session_id = nuevo_id
+        st.session_state["session_id"] = nuevo_id
+        
+        titulo_chat = prompt[:25] + "..." if len(prompt) > 25 else prompt
+        st.session_state["session_title"] = titulo_chat
+        
+        if 'db' in locals() and db is not None:
+            db.collection("sesiones").document(nuevo_id).set({
+                "id": nuevo_id,
+                "user_id": st.session_state.get("user_email", "usuario_anonimo"),
+                "titulo": titulo_chat,
+                "pdf_text": "",
+                "historial_chat": "[]",
+                "fecha": datetime.now(timezone.utc).isoformat()
+            })
 
-                            current_session_id = st.session_state.get("session_id")
-                            if 'db' in locals() and db is not None and current_session_id:
-                                try:
-                                    db.collection("sesiones").document(current_session_id).update({
-                                        "historial_chat": json.dumps(st.session_state.get("chat_history", []))
-                                    })
-                                except Exception as e:
-                                    print(f"Error al guardar mensaje en Firestore: {e}")
-            except Exception as e:
-                st.error(f"Error interno capturado: {e}")
+    # Mostrar mensaje del usuario
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    st.session_state["chat_history"] = st.session_state.messages
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # 4. Respuesta del modelo Gemini
+    if not api_ready:
+        st.error("⚠️ La API de Gemini no está configurada correctamente en los secretos.")
+    else:
+        try:
+            with st.chat_message("assistant"):
+                with st.spinner("MeleLM está pensando..."):
+                    response_text = answer_chat_question(
+                        text=st.session_state.get("pdf_text", ""),
+                        chat_history=st.session_state.messages,
+                        question=prompt
+                    )
+                    if response_text:
+                        st.markdown(response_text)
+                        st.session_state.messages.append({"role": "assistant", "content": response_text})
+                        st.session_state["chat_history"] = st.session_state.messages
+                        save_session_to_db()
+
+                        curr_id = st.session_state.get("current_session_id") or st.session_state.get("session_id")
+                        if 'db' in locals() and db is not None and curr_id:
+                            try:
+                                db.collection("sesiones").document(curr_id).update({
+                                    "historial_chat": json.dumps(st.session_state.messages)
+                                })
+                            except Exception as e:
+                                print(f"Error al guardar mensaje en Firestore: {e}")
+        except Exception as e:
+            st.error(f"Error interno capturado: {e}")
