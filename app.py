@@ -587,15 +587,7 @@ def answer_chat_question(text, chat_history, question):
         formatted_history += f"{role_label}: {msg['content']}\n"
 
     prompt = f"""
-    Actúa como un **investigador académico riguroso** y experto en análisis documental.
-    Tu objetivo es responder a la pregunta del usuario basándote ÚNICA Y EXCLUSIVAMENTE en el texto del documento proporcionado.
-
-    REGLAS DE RESPUESTA:
-    1. **Respaldo con citas literales**: Por cada afirmación importante o conclusión que hagas en tu respuesta, DEBES incluir una breve cita literal del documento original entre comillas y en cursiva (ejemplo: *"..."*).
-    2. **Sección de referencias**: Al final de tu respuesta, añade una sección titulada '### 📌 Referencias extraídas' donde enumeres las citas o fragmentos textuales exactos utilizados para construir tu respuesta.
-    3. **Sin suposiciones ni fuentes externas**: No inventes información ni recurras a conocimientos fuera del documento.
-    4. **Ausencia de información**: Si la respuesta a la pregunta no se encuentra explícitamente en el texto del documento, debes indicar con absoluta claridad:
-       "La información solicitada no se encuentra en el documento proporcionado."
+    Eres MeleLM, un asistente de IA inteligente, empático y conversacional. Tienes acceso a un documento proporcionado por el usuario como contexto. Si el usuario te hace preguntas sobre el documento, utiliza esa información para responder. SIN EMBARGO, si el usuario te hace preguntas generales, te saluda, intenta charlar contigo o te cuenta problemas (ej. 'qué dura es la vida'), debes responder de forma natural, amistosa, empática y humana, como lo haría un asistente general avanzado. En esos casos, NO digas que la información no está en el documento, simplemente sigue la conversación de manera natural.
 
     Contexto del Documento:
     \"\"\"
@@ -678,12 +670,31 @@ with st.sidebar:
                 hay_sesiones = True
                 datos = sesion.to_dict()
                 titulo = datos.get("titulo", "Documento sin título")
-                s_id = sesion.id
-                button_type = "primary" if s_id == st.session_state.get("session_id") else "secondary"
-                # Botón para cargar la sesión
-                if st.sidebar.button(f"📄 {titulo[:25]}", key=f"session_{s_id}", use_container_width=True, type=button_type):
-                    load_session_from_db(s_id)
-                    st.rerun()
+
+                col1, col2 = st.sidebar.columns([8, 2])
+                with col1:
+                    # Botón principal para cargar la sesión
+                    if st.button(f"📄 {titulo[:20]}", key=f"load_{sesion.id}", use_container_width=True):
+                        load_session_from_db(sesion.id)
+                        st.rerun()
+
+                with col2:
+                    # Menú desplegable de opciones (tres puntitos)
+                    with st.popover("⋮"):
+                        st.markdown("**Opciones del chat**")
+                        nuevo_titulo = st.text_input("Renombrar:", value=titulo, key=f"ren_input_{sesion.id}")
+                        if st.button("Guardar nombre", key=f"ren_btn_{sesion.id}"):
+                            db.collection("sesiones").document(sesion.id).update({"titulo": nuevo_titulo})
+                            st.session_state["session_title"] = nuevo_titulo
+                            st.rerun()
+                        
+                        st.divider()
+                        if st.button("🗑️ Eliminar chat", type="primary", key=f"del_btn_{sesion.id}"):
+                            db.collection("sesiones").document(sesion.id).delete()
+                            # Si eliminamos el chat que tenemos abierto, limpiamos la pantalla
+                            if st.session_state.get("session_id") == sesion.id or st.session_state.get("current_session_id") == sesion.id:
+                                start_new_session()
+                            st.rerun()
             if not hay_sesiones:
                 st.sidebar.caption("No hay sesiones guardadas todavía.")
         except Exception as e:
