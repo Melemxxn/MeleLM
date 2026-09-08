@@ -464,12 +464,12 @@ def start_new_session():
 def init_gemini_api():
     """
     Lee y configura la API Key desde los secretos de Streamlit (st.secrets["GEMINI_API_KEY"]).
-    Instancia directamente la versión del modelo 'gemini-1.5-flash-latest'.
+    Instancia directamente la versión del modelo 'gemini-1.5-flash'.
     """
     try:
         api_key = st.secrets["GEMINI_API_KEY"]
         genai.configure(api_key=api_key)
-        st.session_state["model"] = "gemini-1.5-flash-latest"
+        st.session_state["model"] = "gemini-1.5-flash"
         return True
     except KeyError:
         st.error(
@@ -530,10 +530,10 @@ def extract_text_from_pdfs(archivos_subidos):
 @st.cache_data(show_spinner=False)
 def generar_resumen_api(texto_reducido):
     """
-    Genera el resumen llamando directamente a la API de Gemini usando 'gemini-1.5-flash-latest'.
+    Genera el resumen llamando directamente a la API de Gemini usando 'gemini-1.5-flash'.
     Resultados almacenados en la caché de Streamlit según el contenido del texto.
     """
-    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = f"""
     Actúa como un asistente de investigación experto. A continuación se te proporciona el texto extraído de un documento.
     Genera un resumen estructurado con viñetas destacando los puntos principales, conceptos clave y conclusiones del documento.
@@ -551,10 +551,10 @@ def generar_resumen_api(texto_reducido):
 @st.cache_data(show_spinner=False)
 def generar_podcast_api(texto_reducido):
     """
-    Genera el guion del podcast llamando directamente a la API de Gemini usando 'gemini-1.5-flash-latest'.
+    Genera el guion del podcast llamando directamente a la API de Gemini usando 'gemini-1.5-flash'.
     Resultados almacenados en la caché de Streamlit según el contenido del texto.
     """
-    model = genai.GenerativeModel("gemini-1.5-flash-latest")
+    model = genai.GenerativeModel("gemini-1.5-flash")
     prompt = f"""
     Basándote en este documento, genera un guion de un podcast donde dos presentadores (por ejemplo, Alex y Laura) discuten, explican y debaten los puntos clave del texto de forma amena, natural y divulgativa.
     Genera un guion CORTO, de unos 2-3 minutos de duración.
@@ -576,7 +576,7 @@ def generar_podcast_api(texto_reducido):
 # Funciones adicionales (Glosario, Guía y Chat)
 # ==========================================
 def generate_glossary(text):
-    model_name = st.session_state.get("model", "gemini-1.5-flash-latest")
+    model_name = st.session_state.get("model", "gemini-1.5-flash")
     model = genai.GenerativeModel(model_name)
     texto_recortado = text[:30000]
     prompt = f"""
@@ -594,7 +594,7 @@ def generate_glossary(text):
     return response.text
 
 def generate_study_guide(text):
-    model_name = st.session_state.get("model", "gemini-1.5-flash-latest")
+    model_name = st.session_state.get("model", "gemini-1.5-flash")
     model = genai.GenerativeModel(model_name)
     texto_recortado = text[:30000]
     prompt = f"""
@@ -613,7 +613,7 @@ def generate_study_guide(text):
     return response.text
 
 def answer_chat_question(text, chat_history, question):
-    model_name = st.session_state.get("model", "gemini-1.5-flash-latest")
+    model_name = st.session_state.get("model", "gemini-1.5-flash")
     model = genai.GenerativeModel(model_name)
     texto_recortado = text[:30000]
     formatted_history = ""
@@ -1058,7 +1058,7 @@ if prompt_actual:
     else:
         try:
             with st.chat_message("assistant", avatar=avatar_ia):
-                model_name = st.session_state.get("model", "gemini-1.5-flash-latest")
+                model_name = st.session_state.get("model", "gemini-1.5-flash")
                 model = genai.GenerativeModel(model_name)
                 texto_recortado = st.session_state.get("pdf_text", "")[:30000]
                 formatted_history = ""
