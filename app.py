@@ -670,16 +670,26 @@ with st.sidebar:
     st.divider()
     st.subheader("🕒 Historial de Sesiones")
 
-    saved_sessions = get_all_sessions()
-    if saved_sessions:
-        for s_id, title, date_str in saved_sessions:
-            display_title = title if title else "Documento sin título"
-            button_type = "primary" if s_id == st.session_state.get("session_id") else "secondary"
-            if st.button(f"📄 {display_title[:25]}", key=f"session_{s_id}", use_container_width=True, type=button_type):
-                load_session_from_db(s_id)
-                st.rerun()
+    if 'db' in locals() and db is not None and st.session_state.get("user_email"):
+        try:
+            sesiones = db.collection("sesiones").where("user_id", "==", st.session_state.user_email).stream()
+            hay_sesiones = False
+            for sesion in sesiones:
+                hay_sesiones = True
+                datos = sesion.to_dict()
+                titulo = datos.get("titulo", "Documento sin título")
+                s_id = sesion.id
+                button_type = "primary" if s_id == st.session_state.get("session_id") else "secondary"
+                # Botón para cargar la sesión
+                if st.sidebar.button(f"📄 {titulo[:25]}", key=f"session_{s_id}", use_container_width=True, type=button_type):
+                    load_session_from_db(s_id)
+                    st.rerun()
+            if not hay_sesiones:
+                st.sidebar.caption("No hay sesiones guardadas todavía.")
+        except Exception as e:
+            st.sidebar.error(f"Error al cargar historial: {e}")
     else:
-        st.caption("No hay sesiones guardadas todavía.")
+        st.sidebar.caption("No hay sesiones guardadas todavía.")
 
     if st.session_state.get("model"):
         st.divider()
@@ -889,6 +899,15 @@ if st.session_state.get("pdf_text"):
                             st.markdown(response_text)
                             st.session_state["chat_history"].append({"role": "assistant", "content": response_text})
                             save_session_to_db()
+
+                            current_session_id = st.session_state.get("session_id")
+                            if 'db' in locals() and db is not None and current_session_id:
+                                try:
+                                    db.collection("sesiones").document(current_session_id).update({
+                                        "historial_chat": json.dumps(st.session_state.get("chat_history", []))
+                                    })
+                                except Exception as e:
+                                    print(f"Error al guardar mensaje en Firestore: {e}")
             except Exception as e:
                 st.error(f"Error interno capturado: {e}")
 
