@@ -900,7 +900,7 @@ if st.session_state.get("pdf_text"):
                 st.session_state["chat_history"].append({"role": "user", "content": prompt})
 
                 with st.chat_message("assistant"):
-                    with st.spinner("Analizando documento con rigor investigador..."):
+                    with st.spinner("MeleLM está pensando..."):
                         response_text = answer_chat_question(
                             text=st.session_state["pdf_text"],
                             chat_history=st.session_state["chat_history"],
