@@ -40,7 +40,7 @@ if st.session_state.get("user_email"):
         user_data = user_doc.to_dict() if user_doc.exists else {}
 
         if "username" not in user_data:
-            st.info("¡Bienvenido a MeleLM! Para continuar, elige un nombre de usuario.")
+            st.info("¡Bienvenido/a a MeleLM! Para continuar, elige un nombre de usuario.")
             nuevo_username = st.text_input("Nombre de usuario:")
             if st.button("Guardar y Entrar"):
                 if nuevo_username.strip():
