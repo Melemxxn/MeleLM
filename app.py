@@ -32,17 +32,34 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
-# Sincronización del usuario en Firestore (Asegurado después de definir db)
-if st.session_state.get("user_email") and not st.session_state.get("user_synced_firestore", False):
+if st.session_state.get("user_email"):
     try:
-        from datetime import datetime, timezone
-        db.collection("users").document(st.session_state.user_email).set({
-            "email": st.session_state.user_email,
-            "ultimo_acceso": datetime.now(timezone.utc).isoformat()
-        }, merge=True)
-        st.session_state.user_synced_firestore = True
+        user_ref = db.collection("users").document(st.session_state.user_email)
+        user_doc = user_ref.get()
+        user_data = user_doc.to_dict() if user_doc.exists else {}
+
+        if "username" not in user_data:
+            st.info("¡Bienvenido a MeleLM! Para continuar, elige un nombre de usuario.")
+            nuevo_username = st.text_input("Nombre de usuario:")
+            if st.button("Guardar y Entrar"):
+                if nuevo_username.strip():
+                    user_ref.set({
+                        "email": st.session_state.user_email,
+                        "username": nuevo_username.strip(),
+                        "foto": st.session_state.get("user_picture", ""),
+                        "ultimo_acceso": firestore.SERVER_TIMESTAMP
+                    }, merge=True)
+                    st.rerun()
+                else:
+                    st.error("Por favor, escribe un nombre válido.")
+            st.stop() # Detiene la carga de la app hasta que el usuario se registre
+        else:
+            st.session_state.username = user_data.get("username")
+            # Si la foto no estaba en sesión, la recuperamos de la base de datos
+            if not st.session_state.get("user_picture"):
+                st.session_state.user_picture = user_data.get("foto", "")
     except Exception as err:
-        print(f"Error sincronizando con Firestore: {err}")
+        print(f"Error en el flujo de usuario en Firestore: {err}")
 
 # ==========================================
 # 2. Autenticación Google OAuth & Gatekeeper (Nativo con requests & urllib)
@@ -82,16 +99,7 @@ if "user_email" not in st.session_state:
                 if email:
                     st.session_state["user_email"] = email
                     st.session_state["user_id"] = email
-
-                    if db is not None and st.session_state.get("user_email"):
-                        try:
-                            user_ref = db.collection("users").document(st.session_state.user_email)
-                            user_ref.set({
-                                "email": st.session_state.user_email,
-                                "ultimo_acceso": firestore.SERVER_TIMESTAMP
-                            }, merge=True)
-                        except Exception as e:
-                            st.error(f"Error registrando usuario en Firestore: {e}")
+                    st.session_state.user_picture = user_info.get("picture", "")
 
                     st.query_params.clear()
                     st.rerun()
