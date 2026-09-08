@@ -717,15 +717,41 @@ with st.sidebar:
 # ==========================================
 # Área Principal - Interfaz SaaS de la Aplicación
 # ==========================================
-st.markdown(
-    """
-    <div class="titulo-container">
-        <h1 class="titulo-mele">MeleLM</h1>
-        <p class="subtitulo-mele">Tu asistente inteligente para análisis de documentos</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+
+# Menú de Perfil Superior Derecho
+col_izq, col_der = st.columns([8.5, 1.5])
+with col_der:
+    with st.popover("👤 Mi Perfil", use_container_width=True):
+        # Mostrar foto circular si existe
+        if st.session_state.get("user_picture"):
+            st.markdown(f'<img src="{st.session_state.user_picture}" style="border-radius: 50%; width: 70px; display: block; margin: 0 auto; border: 2px solid #3b82f6; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">', unsafe_allow_html=True)
+        
+        # Nombre de usuario
+        username_display = st.session_state.get("username", "Usuario")
+        st.markdown(f"<h4 style='text-align: center; margin-top: 10px; margin-bottom: 5px;'>{username_display}</h4>", unsafe_allow_html=True)
+        
+        st.divider()
+        st.markdown("**Opciones**")
+        # Espacio para futuras opciones
+        st.caption("⚙️ Configuración (Próximamente)")
+        
+        st.divider()
+        if st.button("🚪 Cerrar sesión", key="logout_top_btn", use_container_width=True):
+            # Limpiar estado y reiniciar
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+
+with col_izq:
+    st.markdown(
+        """
+        <div class="titulo-container">
+            <h1 class="titulo-mele">MeleLM</h1>
+            <p class="subtitulo-mele">Tu asistente inteligente para análisis de documentos</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 api_ready = init_gemini_api()
 
