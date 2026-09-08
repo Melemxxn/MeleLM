@@ -43,14 +43,21 @@ if st.session_state.get("user_email"):
             st.info("¡Bienvenido/a a MeleLM! Para continuar, elige un nombre de usuario.")
             nuevo_username = st.text_input("Nombre de usuario:")
             if st.button("Guardar y Entrar"):
-                if nuevo_username.strip():
-                    user_ref.set({
-                        "email": st.session_state.user_email,
-                        "username": nuevo_username.strip(),
-                        "foto": st.session_state.get("user_picture", ""),
-                        "ultimo_acceso": firestore.SERVER_TIMESTAMP
-                    }, merge=True)
-                    st.rerun()
+                nombre_limpio = nuevo_username.strip()
+                if nombre_limpio:
+                    # Comprobar si el nombre de usuario ya está siendo usado por otro usuario
+                    existentes = db.collection("users").where("username", "==", nombre_limpio).stream()
+                    esta_usado = any(doc.id != st.session_state.user_email for doc in existentes)
+                    if esta_usado:
+                        st.error("Ese nombre de usuario ya está siendo usado.")
+                    else:
+                        user_ref.set({
+                            "email": st.session_state.user_email,
+                            "username": nombre_limpio,
+                            "foto": st.session_state.get("user_picture", ""),
+                            "ultimo_acceso": firestore.SERVER_TIMESTAMP
+                        }, merge=True)
+                        st.rerun()
                 else:
                     st.error("Por favor, escribe un nombre válido.")
             st.stop() # Detiene la carga de la app hasta que el usuario se registre
@@ -722,9 +729,32 @@ with col_der:
         st.markdown(f"<h4 style='text-align: center; margin-top: 10px; margin-bottom: 5px;'>{username_display}</h4>", unsafe_allow_html=True)
         
         st.divider()
-        st.markdown("**Opciones**")
-        # Espacio para futuras opciones
-        st.caption("⚙️ Configuración (Próximamente)")
+        st.markdown("**⚙️ Configuración**")
+        with st.expander("✏️ Cambiar nombre de usuario"):
+            nuevo_nombre_input = st.text_input("Nuevo username:", value=username_display, key="change_username_input")
+            if st.button("Guardar nuevo nombre", key="save_new_username_btn"):
+                nombre_cambio = nuevo_nombre_input.strip()
+                if not nombre_cambio:
+                    st.error("Por favor, escribe un nombre válido.")
+                elif nombre_cambio == username_display:
+                    st.info("El nombre introducido es el mismo que el actual.")
+                else:
+                    # Comprobar si el nombre ya pertenece a otro usuario en Firestore
+                    if 'db' in locals() and db is not None:
+                        existentes = db.collection("users").where("username", "==", nombre_cambio).stream()
+                        esta_usado = any(doc.id != st.session_state.get("user_email") for doc in existentes)
+                        if esta_usado:
+                            st.error("Ese nombre de usuario ya está siendo usado.")
+                        else:
+                            try:
+                                db.collection("users").document(st.session_state.user_email).update({
+                                    "username": nombre_cambio
+                                })
+                                st.session_state.username = nombre_cambio
+                                st.success("¡Nombre de usuario actualizado con éxito!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error actualizando nombre de usuario: {e}")
         
         st.divider()
         if st.button("🚪 Cerrar sesión", key="logout_top_btn", use_container_width=True):
